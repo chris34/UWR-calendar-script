@@ -314,7 +314,7 @@ Uhrzeit
             name = delete_unused_unichr(i["name"])
             ort = delete_unused_unichr(i["ort"])
 
-            ordered_infos = [ "[calendar:" + i["url"][31:-1] + ":" + name + u"]",
+            ordered_infos = [ "[calendar:" + i["url"][32:-1] + ":" + name + u"]",
                              ort,
                              i["datum"].strftime("%a, %d.%m.%Y\n%H:%M") + u" Uhr"]
 
