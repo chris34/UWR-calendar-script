@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 #
 # A little python-script that produces automatically the weekly needed
 # calendar for the UWR.
 # (see http://wiki.ubuntuusers.de/ubuntuusers/Ikhayateam/UWR)
 #
-# Version 1.5 (2014-03-16)
+# Version 2.0 (2015-08-14)
 # written by chris34 (http://ubuntuusers.de/user/chris34/)
 #
 # licensed under the
@@ -25,12 +25,12 @@
 ##  0. You just DO WHAT THE FUCK YOU WANT TO.
 
 import datetime
-from HTMLParser import HTMLParser
-from htmlentitydefs import name2codepoint
+from html.parser import HTMLParser
+from html.entities import name2codepoint
 from re import sub
 import sys
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 
 class uuCalendarMonthOverviewParser(HTMLParser):
@@ -42,10 +42,10 @@ class uuCalendarMonthOverviewParser(HTMLParser):
         self.parsed_urls = []
 
     def handle_starttag(self, tag, attrs):
-        if tag == u"table" and attrs[0][1] == u"calendar_month":
+        if tag == "table" and attrs[0][1] == "calendar_month":
             self.calendar_table = True
 
-        if self.calendar_table and tag == u"a" and attrs[-1][1] == u"event_link":
+        if self.calendar_table and tag == "a" and attrs[-1][1] == "event_link":
             self.parsed_urls.append(attrs[0][1])
 
     def get_parsed_urls(self):
@@ -66,7 +66,7 @@ class uuCalendarEventParser(HTMLParser):
         self.datum_found = False
 
     def _convert_entity(self, string):
-        return unichr(name2codepoint[string])
+        return chr(name2codepoint[string])
 
     def _convert_charref(self, string):
         if string[0] == "x":
@@ -76,23 +76,23 @@ class uuCalendarEventParser(HTMLParser):
 
     def _prepare_name(self):
         name_string = self.event_data["name"][len("Veranstaltung")+1:]
-        name_string = name_string.replace(u"„", u"") # remove „
-        name_string = name_string.replace(u"“", u"") # remove ”
+        name_string = name_string.replace("„", "") # remove „
+        name_string = name_string.replace("“", "") # remove ”
         self.event_data["name"] = name_string
 
     def _prepare_datum(self, data):
         '''extracts the beginning of the event'''
         datum = sub(r"\s+", " ", data)
 
-        if u"bis" in datum:
-            datum = datum[:datum.index(u"bis")]
+        if "bis" in datum:
+            datum = datum[:datum.index("bis")]
 
-        if u"morgen" in datum:
-            time_start = datum.index(u"morgen") + len(u"morgen") + 1 # 1 → whitespace
+        if "morgen" in datum:
+            time_start = datum.index("morgen") + len("morgen") + 1 # 1 → whitespace
             time_end = time_start + 5 # f.e. 19:00
             time = datum[time_start:time_end]
 
-            time_str = time.split(u":")
+            time_str = time.split(":")
 
             try:
                 time = datetime.time(int(time_str[0]), int(time_str[1]))
@@ -100,25 +100,25 @@ class uuCalendarEventParser(HTMLParser):
             except ValueError:
                 datum_obj = datetime.date.today() + datetime.timedelta(1)
 
-        elif u"heute" in datum or u"gestern" in datum:
+        elif "heute" in datum or "gestern" in datum:
             # only parsed but (hopefully) never in output
             datum_obj = datetime.datetime.now()
         else:
             # month strings (2013-10-21)
             to_replace = (
-            (u"\n", ""),
-            (u"Januar", 1),
-            (u"Februar", 2),
-            (u"März", 3),
-            (u"April", 4),
-            (u"Mai", 5),
-            (u"Juni", 6),
-            (u"Juli", 7),
-            (u"August", 8),
-            (u"September", 9),
-            (u"Oktober", 10),
-            (u"November", 11),
-            (u"Dezember", 12),
+            ("\n", ""),
+            ("Januar", 1),
+            ("Februar", 2),
+            ("März", 3),
+            ("April", 4),
+            ("Mai", 5),
+            ("Juni", 6),
+            ("Juli", 7),
+            ("August", 8),
+            ("September", 9),
+            ("Oktober", 10),
+            ("November", 11),
+            ("Dezember", 12),
             )
 
             for i in to_replace:
@@ -141,24 +141,24 @@ class uuCalendarEventParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         # event-name detection
-        if tag == u"h3" and len(attrs) == 0:
+        if tag == "h3" and len(attrs) == 0:
             self.name_found = True
 
         # Ort detection
-        if tag == u"td" and self.datum_table_tr_counter == 2:
+        if tag == "td" and self.datum_table_tr_counter == 2:
             self.ort_found = True
 
         # datum detection
         # from table class="vevent" -> tbody -> first tr -> second td
         # f.e. von Juli 3, 2013 19:30 bis Juli 3, 2013 22:00
-        if tag == u"table" and len(attrs) > 0:
-            if u"vevent" in attrs[0][1]:
+        if tag == "table" and len(attrs) > 0:
+            if "vevent" in attrs[0][1]:
                 self.datum_table_found = True
 
-        if self.datum_table_found and tag == u"tr":
+        if self.datum_table_found and tag == "tr":
             self.datum_table_tr_counter += 1
 
-        if self.datum_table_tr_counter == 1 and tag == u"td":
+        if self.datum_table_tr_counter == 1 and tag == "td":
             self.datum_found = True
 
     def handle_data(self, data):
@@ -172,16 +172,16 @@ class uuCalendarEventParser(HTMLParser):
             self.event_data["datum"] = self._prepare_datum(data)
 
     def handle_endtag(self, tag):
-        if tag == u"h3" and self.name_found:
+        if tag == "h3" and self.name_found:
             self.name_found = False
 
-        if (tag == u"span" or tag == u"td") and self.ort_found:
+        if (tag == "span" or tag == "td") and self.ort_found:
             self.ort_found = False
 
-        if tag == u"table":
+        if tag == "table":
             self.datum_table_found = False
 
-        if self.datum_found and tag == u"td":
+        if self.datum_found and tag == "td":
             self.datum_found = False
 
     def get_parsed_data(self):
@@ -212,8 +212,8 @@ def generate_url(date_obj):
     return sep.join([url_base, year, month])
 
 def download_page(url):
-    response = urllib2.urlopen(url).read()
-    return unicode(response, "utf-8")
+    response = urllib.request.urlopen(url).read()
+    return str(response, "utf-8")
 
 def collect_information(pages):
     info_array = pages
@@ -239,11 +239,11 @@ def delete_unused_unichr(text):
     '''
     new_text = text
 
-    unused_unichr_range = range(0, 32)
-    unused_unichr_range.extend(range(127, 160))
+    unused_unichr_range = list(range(0, 32))
+    unused_unichr_range.extend(list(range(127, 160)))
 
     for chr_code in unused_unichr_range:
-        new_text = new_text.replace(unichr(chr_code), "")
+        new_text = new_text.replace(chr(chr_code), "")
 
     return new_text
 
@@ -309,24 +309,24 @@ Uhrzeit
 
     for i in infos:
         if  calendar_end >= i["datum"].date() >= calendar_begin:
-            table += u"+++\n"
+            table += "+++\n"
 
             name = delete_unused_unichr(i["name"])
             ort = delete_unused_unichr(i["ort"])
 
-            ordered_infos = [ "[calendar:" + i["url"][32:-1] + ":" + name + u"]",
+            ordered_infos = [ "[calendar:" + i["url"][32:-1] + ":" + name + "]",
                              ort,
-                             i["datum"].strftime("%a, %d.%m.%Y\n%H:%M") + u" Uhr"]
+                             i["datum"].strftime("%a, %d.%m.%Y\n%H:%M") + " Uhr"]
 
             if highlight: # highlight every second row
-                ordered_infos[0] = u'<rowclass="highlight">' + ordered_infos[0]
+                ordered_infos[0] = '<rowclass="highlight">' + ordered_infos[0]
             highlight = not(highlight)
 
-            table += u"\n".join(ordered_infos) + u"\n"
+            table += "\n".join(ordered_infos) + "\n"
 
-    table += u"}}}"
+    table += "}}}"
 
-    print table
+    print(table)
 
 if __name__ == "__main__":
     import locale
