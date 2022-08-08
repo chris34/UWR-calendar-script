@@ -205,7 +205,7 @@ class uuCalendarEventParser(HTMLParser):
             self.event_data["ort"] += self._convert_charref(name)
 
 def generate_url(date_obj):
-    url_base = "http://ubuntuusers.de/calendar"
+    url_base = "https://ubuntuusers.de/calendar"
     sep = "/"
     year = str(date_obj.year)
     month = str(date_obj.month)
